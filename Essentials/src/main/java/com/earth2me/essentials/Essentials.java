@@ -171,6 +171,7 @@ public class Essentials extends JavaPlugin implements net.ess3.api.IEssentials {
     private transient RandomTeleport randomTeleport;
     private transient UpdateChecker updateChecker;
     private transient Map<String, IEssentialsCommand> commandMap = new HashMap<>();
+    private transient VanishNotifier vanishNotifier;
 
     static {
         EconomyLayers.init();
@@ -422,6 +423,9 @@ public class Essentials extends JavaPlugin implements net.ess3.api.IEssentials {
 
             timer = new EssentialsTimer(this);
             scheduleSyncRepeatingTask(timer, 1000, 50);
+
+            this.vanishNotifier = new VanishNotifier(this);
+            runTaskTimerAsynchronously(this.vanishNotifier, 10L, 20L);
 
             Economy.setEss(this);
             execTimer.mark("RegHandler");
