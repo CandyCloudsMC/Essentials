@@ -49,6 +49,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -65,6 +66,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,6 +80,7 @@ public class EssentialsPlayerListener implements Listener, FakeAccessor {
     private static final Logger LOGGER = Logger.getLogger("Essentials");
     private final transient IEssentials ess;
     private final ConcurrentHashMap<UUID, Integer> pendingMotdTasks = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> doubleShiftMap = new HashMap<>();
 
     public EssentialsPlayerListener(final IEssentials parent) {
         this.ess = parent;
@@ -126,6 +129,33 @@ public class EssentialsPlayerListener implements Listener, FakeAccessor {
         if (isCommandSendEvent()) {
             ess.getServer().getPluginManager().registerEvents(new CommandSendListener(), ess);
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOW)
+    public void onSneakingToggleGameMode(final PlayerToggleSneakEvent event) {
+        final UUID uuid = event.getPlayer().getUniqueId();
+        if (!event.isSneaking()) {
+            return;
+        }
+
+        if (event.getPlayer().getGameMode() != GameMode.CREATIVE && event.getPlayer().getGameMode() != GameMode.SPECTATOR) {
+            this.doubleShiftMap.remove(uuid);
+            return;
+        }
+
+        if (!this.doubleShiftMap.containsKey(uuid)) {
+            this.doubleShiftMap.put(uuid, System.currentTimeMillis());
+            return;
+        }
+
+        if (System.currentTimeMillis() - this.doubleShiftMap.get(uuid) < 250) {
+            event.getPlayer().setGameMode(event.getPlayer().getGameMode() == GameMode.CREATIVE
+                    ? GameMode.SPECTATOR
+                    : GameMode.CREATIVE
+            );
+        }
+
+        this.doubleShiftMap.remove(uuid);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
